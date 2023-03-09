@@ -135,6 +135,8 @@ url=data://text/plain;base64,PD9waHAgc3lzdGVtKCdjYXQgY3RmX2dvX2dvX2dvJyk/Pg==
 
 **php://filter/read=convert.**,用于读取文件，可以配合include函数使用
 
+**php://input**，执行POST数据中的代码
+
 #### 逻辑造成的漏洞
 
 - 函数调用顺序造成的漏洞
