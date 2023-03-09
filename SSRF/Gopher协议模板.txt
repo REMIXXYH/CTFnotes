@@ -1,0 +1,12 @@
+POST /flag.php HTTP/1.1
+Host:127.0.0.1:80
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 36
+
+key=0671ade7a1cce56168d6e2d9cff5a078
+
+GET /index.php HTTP/1.1
+Host: localhost:80
+Connection: close
+Content-Type: application/x-www-form-urlencoded
+Cookie: this_is_your_cookie="+bs+";
