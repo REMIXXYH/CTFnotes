@@ -66,6 +66,10 @@ scandir('/')
 
 file_get_contents 是一个 PHP 内置函数，**用于读取文件的内容并返回字符串**。它可以用于读取本地文件、远程文件、以及通过 HTTP/HTTPS 协议访问的 URL。
 
+#### file_put_contents(file,data,mode,context)
+
+将数据写入文件，file文件名，data为写入数据
+
 #### glob()
 
 glob() 函数返回匹配指定模式的文件名或目录。
