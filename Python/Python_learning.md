@@ -39,6 +39,28 @@ with open("/tmp/foo.txt") as file:
 
 
 
+### 并发编程
+
+`threading` 库可以在单独的线程中执行任何的在 Python 中可以调用的对象。你可以创建一个 `Thread` 对象并将你要执行的对象以 target 参数的形式提供给该对象。 下面是一个简单的例子：
+
+```python
+import time
+def countdown(n):
+    while n > 0:
+        print('T-minus', n)
+        n -= 1
+        time.sleep(5)
+
+# Create and launch a thread
+from threading import Thread
+t = Thread(target=countdown, args=(10,))
+t.start()
+```
+
+
+
+
+
 ### 一些特殊函数
 
 #### encode()和decode()

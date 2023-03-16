@@ -30,6 +30,10 @@ intval函数是强制转化为int的函数，如果字符串不是数字字符�
 $key = intval("123ffwsfwefwf24r2f32ir23jrw923rskfjwtsw54w3");
 ```
 
+**intval()函数还具体有==整数溢出==的特性，当传入的数大于一定大小时，会溢出并返回0**
+
+
+
 #### replace()
 
 常见用于空字符替换敏感字符，但是可以通过双写绕过
@@ -62,6 +66,10 @@ php中获取指定文件目录的函数
 scandir('/')
 ```
 
+#### highlight_file()
+
+显示指定文件内容并高亮
+
 #### file_get_contents()
 
 file_get_contents 是一个 PHP 内置函数，**用于读取文件的内容并返回字符串**。它可以用于读取本地文件、远程文件、以及通过 HTTP/HTTPS 协议访问的 URL。
@@ -80,6 +88,48 @@ glob() 函数返回匹配指定模式的文件名或目录。
 ```php
 ?cmd=print_r(glob("*"));
 ```
+
+#### sprintf()
+
+字符串格式化函数，
+
+```php
+<?php
+$number = 9;
+$str = "RUNOOB";
+$txt = sprintf("%s 每天有 %u 万人在访问！", $str, $number);
+echo $txt;
+?>
+```
+
+**漏洞分析：**
+
+由于该函数的底层逻辑上只对15中占位符有分支，而其他的则直接没处理，而造成的被替换为空字符，如：
+
+```php
+<?php
+$sql="select * from user where username='%\' and 1=1 #';";
+$user='admin';
+echo sprintf($sql,$user);
+?>
+//打印出来：select * from user where username='' and 1=1 #';
+```
+
+**可被替换为空的占位符：`%\`,`%1$\`**
+
+```sql
+?name=admin&pass=1%1$'or %1$'1%1$'=%1$'1
+```
+
+上面的字符串经过addslashes函数和sprintf函数后，变成
+
+```sql
+pass=1'or '1'='1
+```
+
+**`%1$c`**效果等于%c，此时传入39，会产生单引号`'`
+
+
 
 #### escapeshellarg和escapeshellcmd联合造成的漏洞
 

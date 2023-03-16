@@ -105,3 +105,61 @@ for i in range(50):
 {"success":"1","msg":"\u4eba\u8138\u8bc6\u522b\u6210\u529f!ctfshow{6f98bbcc-82e2-4c3e-a46e-0a8f8ad403cd}","error":"0","errormsg":""}
 ```
 
+
+
+#### 红包题第七弹
+
+##### 信息收集
+
+一开始进去就是一个phpinfo的页面，发现disable_function了一些函数，猜测会用到shell命令，但是没有多余的信息，于是使用dirmap扫描，发现有.git文件，直接访问得到403，无果，可能存在git泄露。
+
+##### 解题
+
+于是尝试获取源码，先后使用Git Hack和Git_Extract获取，Githack只获取到了存在index.php和backdoor.php两个文件名，另一个获取到了源码，如下：
+
+![](D:\0-CTF\Documents\WP\images\ctfshow_红包题7_1.jpg)
+
+得到Letmein后门，于是用中国蚁剑连接，发现读取不了文件，果然是disable_function在起作用，那么我们再使用一下插件，发现也打不开，emmm，那就手工吧，现在是蚁剑已经获取到了文件目录，在`var/www/flag.txt`可能存在flag，于是我使用如下payload:
+
+`Letmain=print_r(highlight_file("var/www/flag.txt"))`，成功解题
+
+
+
+#### 萌新赛-给她
+
+##### 信息收集
+
+进去是一个SQL语句展示，emmm，那就写几句SQL注入看看，抓包，用字典FUZZ，一个没出，发现单引号都被转义了，猜测后台是有一个`addslashes`函数，那么我们可以联想到`sprintf`函数与`addslashes`函数连用造成的逻辑漏洞，但是不确定，目录扫描可不能少，扫一下，发现有git，直接访问报403，那用GitHack拉取一下，发现`hint.php`
+
+![](D:\0-CTF\Documents\WP\images\ctfshow_给她_1.jpg)
+
+发现确实如我们所想，存在sprintf函数
+
+##### sprintf函数的底层逻辑漏洞
+
+由于该函数的底层逻辑上只对15中占位符有分支，而其他的则直接没处理，而造成的被替换为空字符，如：
+
+```php
+<?php
+$sql="select * from user where username='%\' and 1=1 #';";
+$user='admin';
+echo sprintf($sql,$user);
+?>
+//打印出来：select * from user where username='' and 1=1 #';
+```
+
+**可被替换为空的占位符：`%\`,`%1$\`**
+
+##### 解题
+
+那么我可以构造如下payload：`name=admin&pass=1%1$'or 1=1%23`
+
+在后台应该是：`select * from user where name ='admin' and pass='1'or 1=1#'`
+
+返回了一个报错页面，发现不是原生的报错，check一下源码：
+
+![](D:\0-CTF\Documents\WP\images\ctfshow_给她_2.jpg)
+
+发现存在hint，那么文件位置我们已经知晓，下面就是如何读取文件，首先想到的是用load_file函数，但是没搞出来，然后无意间抓了一个包，好家伙，**cookie里竟然藏了一个file**，抓出来转16进制，得到`flag.txt`，那么我们放入`/flag`的16进制进去`2f666c6167`，放包，得到flag：`ctfshow{9cd199ec-f7ef-41e0-9a1f-234d9ab5628d}`
+
+![](D:\0-CTF\Documents\WP\images\ctfshow_给她_3.jpg)
