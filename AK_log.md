@@ -125,3 +125,11 @@ Git泄露，新的Git泄露工具Git_extract获取源码，
 **1.ctfshow-给她**
 
 sprintf函数解析漏洞，将无法解析占位符替换为空，从而实现单引号逃逸
+
+**2.ctfshow-萌新赛签到题**
+
+简单的命令注入，通过||实现，payload：||ls||,||cat flag|
+
+**3.ctfshow-萌新赛假赛生**
+
+正则未过滤空格，
