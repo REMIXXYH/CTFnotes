@@ -163,3 +163,29 @@ echo sprintf($sql,$user);
 发现存在hint，那么文件位置我们已经知晓，下面就是如何读取文件，首先想到的是用load_file函数，但是没搞出来，然后无意间抓了一个包，好家伙，**cookie里竟然藏了一个file**，抓出来转16进制，得到`flag.txt`，那么我们放入`/flag`的16进制进去`2f666c6167`，放包，得到flag：`ctfshow{9cd199ec-f7ef-41e0-9a1f-234d9ab5628d}`
 
 ![](D:\0-CTF\Documents\WP\images\ctfshow_给她_3.jpg)
+
+
+
+#### 萌新赛-萌新记忆
+
+##### 信息收集
+
+首先进去是一堆无用界面，都是静态的图片触发，没有交互，那么必备程序，扫后台，**启动dirmap，扫出来了，芜湖~，发现admin界面**
+
+![](D:\0-CTF\Documents\WP\images\ctfshow_萌新记忆_1.jpg)
+
+![](D:\0-CTF\Documents\WP\images\ctfshow_萌新记忆_2.jpg)
+
+那么接下来就是抓包分析，登录抓一个包，然后用字典Fuzz，看看有没有SQLi，这里我首先Fuzz密码，发现都是同一回显，恼，但是**Fuzz登录名的时候爆出来SQL语句错**，嘿嘿，那么肯定是SQLi啦。
+
+![](D:\0-CTF\Documents\WP\images\ctfshow_萌新记忆_3.jpg)
+
+分别有四种回显：`我报警了`，`用户名错误`,`用户名/密码错误`,`原生SQL报错`
+
+第一种明显就是直接黑名单了，`or,select,limit,order by,concat,group_concat,database,....`都被过滤掉了
+
+还剩下，`updataxml,||,as,',(),`
+
+##### 解题
+
+接下来就是探寻如何解题，首先想到报错注入，但是啊，gourp_concat和concat被ban掉了，好像爆不出来
