@@ -6,13 +6,13 @@
 
 ​       **FastCGI协议和HTTP协议一样是通信协议，不过，http是浏览器（也就是客户端）和服务器中间件之间通信的协议，而FastCGI协议是服务器中间件和某种语言编写的正在运行的后端程序间的通信协议**。
 
-![](D:\CTF\文档\SSRF\image\FastCGI_1.jpg)
+![](D:\0-CTF\Documents\SSRF\image\FastCGI_1.jpg)
 
 ​       **在网站架构中，Web Server（如Nginx）只是内容的分发者。当客户端请求的是index.php，根据配置文件Web Server辨别不是静态文件，此时就需要去找 PHP解析器来处理。**
 
 ​       **FPM其实是一个fastcgi协议解析器，Nginx等服务器中间件将用户请求按照fastcgi的规则打包好通过TCP传给谁？其实就是传给FPM。FPM按照fastcgi的协议将TCP流解析成真正的数据。**
 
-![](D:\CTF\文档\SSRF\image\FastCGI_2.jpg)
+![](D:\0-CTF\Documents\SSRF\image\FastCGI_2.jpg)
 
 
 
@@ -44,7 +44,7 @@ typedef struct {
 
 **2.**  因为fastcgi一个record的大小是有限的，作用也是单一的，所以我们需要在一个TCP流里传输多个record。通过`type`来标志每个record的作用，用`requestId`作为同一次请求的id。也就是说，**每次请求，会有多个record，他们的`requestId`是相同的**。**当type为4的时候，解析为键值对，就是在传递环境变量**
 
-![](D:\CTF\文档\SSRF\image\FastCGI_4.jpg)
+![](D:\0-CTF\Documents\SSRF\image\FastCGI_4.jpg)
 
 
 
@@ -100,4 +100,4 @@ Kali环境中，使用shell，`python2 gopherus.py --expolit fastcgi`
 
 第一行键入已知目标服务器上的.php文件，第二行键入shell语句，直接生成Gopher语句，在进行二次url编码，找到攻击窗口攻击。
 
-![](D:\CTF\文档\SSRF\image\FastCGI_3.jpg)
+![](D:\0-CTF\Documents\SSRF\image\FastCGI_3.jpg)

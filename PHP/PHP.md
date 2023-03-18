@@ -181,7 +181,7 @@ var_dump(md5($a)===md5($b));
 
 **file://**,直接读取文件内容
 
-**data://**,可以执行php代码，常用base64编码，可以配合include函数使用
+**data://text/plain,**,可以执行php代码，常用base64编码，可以配合include函数使用
 
 ```php
 url=data://text/plain;base64,PD9waHAgc3lzdGVtKCdjYXQgY3RmX2dvX2dvX2dvJyk/Pg==

