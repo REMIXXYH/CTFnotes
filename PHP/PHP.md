@@ -32,6 +32,12 @@ $key = intval("123ffwsfwefwf24r2f32ir23jrw923rskfjwtsw54w3");
 
 **intval()函数还具体有==整数溢出==的特性，当传入的数大于一定大小时，会溢出并返回0**
 
+#### is_numberic()
+
+用于判断传入的是否为数字或数字字符串，是则返回true
+
+但是这个函数有一个漏洞，它会**将`0x`开头的16进制数也当作数字，从而可以输入字符型数据**
+
 
 
 #### replace()
@@ -137,6 +143,16 @@ pass=1'or '1'='1
 2. 经过`escapeshellarg`处理后变成了`'172.17.0.2'\'' -v -d a=1'`，即先对单引号转义，再用单引号将左右两部分括起来从而起到连接的作用。
 3. 经过`escapeshellcmd`处理后变成`'172.17.0.2'\\'' -v -d a=1\'`，这是因为`escapeshellcmd`对`\`以及最后那个**不配对**的引号进行了转义：http://php.net/manual/zh/function.escapeshellcmd.php
 4. 最后执行的命令是`curl '172.17.0.2'\\'' -v -d a=1\'`，由于中间的`\\`被解释为`\`而不再是转义字符，所以后面的`'`没有被转义，与再后面的`'`配对儿成了一个空白连接符。所以可以简化为`curl 172.17.0.2\ -v -d a=1'`，即向`172.17.0.2\`发起请求，POST 数据为`a=1'`。
+
+#### forward_static_ call_array($func,array)
+
+调用静态方法并将参数作为数组传递
+
+**加上`\`绕过黑名单**
+
+在php当中默认命名空间是\，所有原生函数和类都在这个命名空间中。普通调用一个函数，如果直接写函数名function_name()调用，调用的时候其实相当于写了一个相对路径；而**如果写\function_name()这样调用函数，则其实是写了一个绝对路径**。如果你在其他namespace里调用系统类，就必须写绝对路径这种写法。
+
+payload:`a=\system&b[]=ls`
 
 
 
@@ -306,8 +322,88 @@ class IndexController extends Controller
 
 #### PHP文件上传产生临时文件利用
 
+​		**关键点：php.ini中设置`upload_tmp_dir`**
+
 ​		php的上传**接受multipart/form-data，然后会将它保存在临时文件中**。php.ini中设置的`upload_tmp_dir`就是这个临时文件的保存目录。**linux下默认为`/tmp`**。也就是说，只要是php接收到上传的POST请求，就会保存一个临时文件，如何这个php脚本具有“上传功能”那么它将拷贝走，无论如何当脚本执行结束这个临时文件都会被删除。另外，这个php临时文件在**linux系统下的命名规则永远是`phpXXXXXX`**
 
 [CTFshow-红包题2](https://www.shawroot.cc/1634.html)
 
 构造了payload`cmd=?><?=. /??p/p?p??????;`
+
+
+
+#### PHP反序列化
+
+##### 反序列化中的字符逃逸问题
+
+​		在PHP反序列化的过程中，通过解析传入参数前指定的长度来解析数据，**当实际长度与反序列解析出来的长度不匹配的时候容易产生字符逃逸问题**，
+
+如`s:4:"pass";s:6:"1234567890"`，反序列化时只会解析成`pass=>123456`，而`7890`则发生了字符逃逸。
+
+我们不妨再深入一点：php中反序列化，**在底层对变量的处理是通过`;`实现的， 那么我们可以通过闭合`;`和`"`来进行一些操作**
+
+有如下类：
+
+```php
+class User{
+    $name='hhh';
+    $pass='888888888888888888888888888888";s:8:"nickname";s:6:"hacked"}';
+    $nickname='e';
+}
+//上面的类serialize后：
+O:4:"User":3:{s:4:"name";s:3:"hhh";s:4:"pass";s:60:"888888888888888888888888888888";s:8:"nickname";s:6:"hacked"}";s:8:"nickname";s:1:"e"}
+
+```
+
+```php
+//但是后台写了一个过滤，将8替换为了99，这样原本的60个字符，变成了90个，多出来的30个9刚好将
+";s:8:"nickname";s:6:"hacked"}
+//逃逸了出去，则会变成：
+{
+    $name=>'hhh';
+    $pass=>'9999999999999999999999999999999999999999999999999999';
+    $nickname='hacked';
+}
+//可以发现nickname被替换了
+```
+
+
+
+
+
+##### 普通反序列化
+
+- `__call`魔术方法，当调用一个不存在的方法时自动触发执行。
+
+  下面是一个示例：
+
+  ```php
+  phpCopy codeclass MyClass {
+      public function __call($name, $arguments) {
+          echo "调用的方法名是：" . $name . PHP_EOL;
+          echo "传递的参数是：" . implode(",", $arguments) . PHP_EOL;
+      }
+  }
+  
+  $obj = new MyClass();
+  $obj->test("a", "b", "c");
+  ```
+
+  当我们调用 `$obj` 对象的 `test()` 方法时，由于 `MyClass` 类中并没有定义该方法，因此 PHP 会自动调用 `__call` 方法，并将方法名和参数传递给该方法。在上面的例子中，`__call` 方法将输出：
+
+  ```tiki wiki
+  cssCopy code调用的方法名是：test
+  传递的参数是：a,b,c
+  ```
+
+- 
+
+
+
+
+
+
+
+##### session反序列化
+
+关键点：设置`ini_set('session.serialize_handler', 'php');`

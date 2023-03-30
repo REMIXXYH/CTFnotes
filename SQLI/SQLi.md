@@ -172,3 +172,8 @@ select * from users where username='\' and passwd='||/**/passwd/**/regexp/**/"^a
 
 #### 使用``对关键字绕过
 
+
+
+#### 16进制数作为字符串
+
+在SQL语句中，会将16进制的串按照字符串解析，从而可以造成注入
